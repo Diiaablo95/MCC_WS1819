@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 let TaskSchema = new Schema({
-    id: Schema.Types.ObjectId,
-    name: {type: String, required: [true, "Name must be specified for a task."]},
-    created_date: {type: Date, default: Date.now},
-    status: {type: String, enum: ["pending", "ongoing", "completed"], default: "pending"}
+    _id: {type: Schema.Types.ObjectId, auto: true},
+    name: String,
+    created_date: Date,
+    status: String
 });
 
 // Export the model
