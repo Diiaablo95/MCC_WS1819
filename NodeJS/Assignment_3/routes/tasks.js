@@ -88,10 +88,15 @@ router.get("/tasks/:taskID", function(req, res, next) {
     })
 });
 
-router.get("/calc/mul", function(req, res, next) {
-    let resBody = checkConditions(req.query.first, req.query.second, false, function(a, b) { return a * b })
-    res.statusCode = resBody.message == null ? 200 : 400
-    res.send(resBody)
-});
+router.delete("/tasks/:taskID", function(req, res, next) {
+    mongoose.connection.db.collection("tasks").deleteOne({_id: new mongoose.Types.ObjectId(req.params.taskID)}).then(function(deleteResult) {
+        if (deleteResult.deletedCount > 0) {
+            res.send(204)
+        } else {
+            res.statusCode = 404
+            res.send({message: "Task with given ID not found."})
+        }
+    })
+})
 
 module.exports = router;
