@@ -5,82 +5,35 @@ var path = require("path");
 const Task = require(path.join(__dirname, '..', 'models', 'taskModel.js'));
 const mongoose = require('mongoose');
 
-function isValidTaskStatus(status) {
-    return ["pending", "ongoing", "completed"].includes(status)
-}
+router.post("/task", (req, res, next) => {
 
-router.post("/task", function(req, res, next) {
+    let task = new Task({name: req.body.name, status: req.body.status, created_date: req.body.created_date})
 
-    console.error("*****" + JSON.stringify(req.body))
-
-    let taskName = req.body.name
-
-    if (taskName == null) {
-        res.statusCode = 400
-        res.send({message: "Task name required."})
-        return
-    }
-
-    var taskDate
-
-    if (req.body.created_date == null) {
-        taskDate = Date.now()
-    } else {
-        let parsedDate = Date.parse(req.body.created_date)
-        if (parsedDate != null) {
-            taskDate = parsedDate
-        } else {
-            res.statusCode = 400
-            res.send({message: "Task date in wrong format."})
-            return
-        }
-    }
-
-    var taskStatus
-
-    if (req.body.status == null) {
-        taskStatus = "pending"
-    } else {
-        if (isValidTaskStatus(req.body.status)) {
-            taskStatus = req.body.status
-        } else {
-            res.statusCode = 400
-            res.send({message: "Task status not in ['pending', 'ongoing', 'completed']"})
-            return
-        }
-    }
-
-    let task = new Task(
-        {
-            name: taskName,
-            created_date: taskDate,
-            status: taskStatus
-        }
-    );
-
-    task.save(function (error, result) {
+    task.save((error, result) => {
         if (error) {
             res.statusCode = 400
             res.send({message: error.errors})
         } else {
-            console.log(result)
+            res.statusCode = 201
             res.send({message: "Task successfully created", id: result._id})
         }
     })
 });
 
-router.get("/tasks", function(req, res, next) {
-    mongoose.connection.db.collection("tasks").find().toArray().then(function(elements) {
-        res.send(elements.map(function(task) {
-            return {id: task._id, name: task.name, created_date: task.created_date, status: task.status}
-        }))
+router.get("/tasks", (req, res, next) => {
+    mongoose.connection.db.collection("tasks").find().toArray().then(elements => {
+        res.send(elements)
+        // res.send(elements.map(task => {
+        //     return {_id: task._id, name: task.name, created_date: task.created_date, status: task.status}
+        // }))
     })
 });
 
-router.get("/tasks/:taskID", function(req, res, next) {
-    mongoose.connection.db.collection("tasks").findOne({_id: new mongoose.Types.ObjectId(req.params.taskID)}).then(function(task) {
+router.get("/tasks/:taskID", (req, res, next) => {
+    mongoose.connection.db.collection("tasks").findOne({_id: new mongoose.Types.ObjectId(req.params.taskID)}).then(task => {
         if (task) {
-            res.send({id: task._id, name: task.name, created_date: task.created_date, status: task.status})
+            // res.send({id: task._id, name: task.name, created_date: task.created_date, status: task.status})
+            res.send(task)
         } else {
             res.statusCode = 404
             res.send({message: "Task with given ID not found."})
@@ -88,10 +41,25 @@ router.get("/tasks/:taskID", function(req, res, next) {
     })
 });
 
-router.delete("/tasks/:taskID", function(req, res, next) {
-    mongoose.connection.db.collection("tasks").deleteOne({_id: new mongoose.Types.ObjectId(req.params.taskID)}).then(function(deleteResult) {
+router.put("/tasks/:taskID", (req, res, next) => {
+
+    let updatedTask = new Task({name: req.body.name, status: req.body.status, created_date: req.body.created_date})
+    updatedTask._id = req.params.taskID
+
+    mongoose.connection.db.collection("tasks").findOneAndUpdate({_id: new mongoose.Types.ObjectId(req.params.taskID)}, updatedTask).then(updateResult => {
+        if (updateResult) {
+            res.send({message: "Task successfully updated", id: updatedTask._id, name: updatedTask.name, created_date: updatedTask.created_date, status: updatedTask.status})
+        } else {
+            res.statusCode = 404
+            res.send({message: "Task with given ID not found."})
+        }
+    })
+})
+
+router.delete("/tasks/:taskID", (req, res, next) => {
+    mongoose.connection.db.collection("tasks").deleteOne({_id: new mongoose.Types.ObjectId(req.params.taskID)}).then(deleteResult => {
         if (deleteResult.deletedCount > 0) {
-            res.send(204)
+            res.send({message: "Task successfully deleted", id: req.params.taskID})
         } else {
             res.statusCode = 404
             res.send({message: "Task with given ID not found."})
